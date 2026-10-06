@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>tracker wendyjelly - Expense & Income Tracker</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Kanit & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --color-primary: #ec4899;
+            --color-primary-hover: #db2777;
+            --color-accent: #f43f5e;
+            --color-soft: #fce7f3;
+            --color-soft-hover: #fbcfe8;
+            --color-border: rgba(244, 114, 182, 0.4);
+            --color-text-dark: #831843;
+            --color-text-main: #334155;
+            --glass-bg: rgba(255, 255, 255, 0.78);
+            --glass-border: rgba(255, 255, 255, 0.6);
+            --shadow-color: rgba(236, 72, 153, 0.15);
+        }
+
+        * {
+            font-family: 'Kanit', 'Inter', sans-serif;
+        }
+
+        /* Glassmorphism Styles */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--color-border);
+            box-shadow: 0 10px 30px 0 var(--shadow-color);
+        }
+
+        .glass-card-sm {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--color-border);
+        }
+
+        .glass-modal {
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--color-border);
+        }
+
+        /* Dynamic Theme Buttons & Accents */
+        .theme-btn-primary {
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+            color: #ffffff;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .theme-btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px -4px var(--shadow-color);
+        }
+
+        .theme-bg-soft {
+            background-color: var(--color-soft);
+        }
+
+        .theme-text-primary {
+            color: var(--color-primary);
+        }
+
+        .theme-text-dark {
+            color: var(--color-text-dark);
+        }
+
+        .theme-border {
+            border-color: var(--color-border);
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 7px;
+            height: 7px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--color-primary);
+            border-radius: 10px;
+        }
+
+        /* Background overlay */
+        #bg-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            transition: background-image 0.5s ease;
+        }
+
+        .bg-pattern-default {
+            background-color: #fdf2f8;
+            background-image: radial-gradient(var(--color-primary) 0.75px, transparent 0.75px);
+            background-size: 20px 20px;
+            opacity: 0.8;
+        }
+
+        /* Toast Container */
+        #toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-col;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 antialiased relative selection:bg-pink-200 selection:text-pink-900">
+    
+    <!-- Background Layer -->
+    <div id="bg-overlay" class="bg-pattern-default"></div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container"></div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- HEADER & BRANDING BAR -->
+        <header class="glass-card rounded-3xl p-5 sm:p-6 transition-all relative overflow-hidden">
+            <div class="flex flex-col lg:flex-row items-center justify-between gap-6 relative z-10">
+                
+                <!-- Left: Branding & Profile -->
+                <div class="flex items-center gap-4 w-full lg:w-auto">
+                    <!-- Profile Picture Upload -->
+                    <div class="relative group cursor-pointer flex-shrink-0" onclick="document.getElementById('profile-input').click()" title="คลิกเพื่อเปลี่ยนรูปโปรไฟล์">
+                        <img id="profile-img" src="https://placehold.co/120x120/fbcfe8/db2777?text=WJ" 
+                             alt="Profile Picture" 
+                             class="w-20 h-20 sm:w-22 sm:h-22 rounded-2xl object-cover border-2 theme-border shadow-md transition-transform group-hover:scale-105">
+                        <div class="absolute inset-0 bg-black/30 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <i class="fa-solid fa-camera text-white text-lg"></i>
+                        </div>
+                        <input type="file" id="profile-input" accept="image/*" class="hidden" onchange="handleProfileUpload(event)">
+                    </div>
+
+                    <!-- App Title & User Name -->
+                    <div class="space-y-1 flex-1">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold px-2.5 py-0.5 rounded-full theme-bg-soft theme-text-primary tracking-wider uppercase">
+                                <i class="fa-solid fa-sparkles mr-1"></i> tracker wendyjelly
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <input type="text" id="user-name-input" value="Wendy Jelly" 
+                                   class="text-xl sm:text-2xl font-bold theme-text-dark bg-transparent border-b border-transparent hover:border-pink-300 focus:border-pink-500 focus:bg-white/50 focus:outline-none rounded px-1 transition-all w-full max-w-xs"
+                                   onchange="saveUserSettings()" title="คลิกเพื่อแก้ไขชื่อผู้ใช้">
+                            <i class="fa-solid fa-pen-to-square text-slate-400 text-xs"></i>
+                        </div>
+                        <p class="text-xs text-slate-500 font-light flex items-center gap-1">
+                            <i class="fa-solid fa-chart-pie theme-text-primary"></i> บันทึกการเงินอย่างง่ายและมีสไตล์
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Right: Customization Controls (Theme, Music, Background) -->
+                <div class="flex flex-wrap items-center justify-end gap-2.5 w-full lg:w-auto border-t lg:border-t-0 pt-4 lg:pt-0 border-pink-200/50">
+                    
+                    <!-- Theme Selector Button -->
+                    <button onclick="openModal('theme-modal')" class="text-xs font-medium bg-white/80 hover:bg-white theme-text-dark py-2 px-3.5 rounded-xl border theme-border shadow-sm transition flex items-center gap-2">
+                        <i class="fa-solid fa-palette theme-text-primary"></i>
+                        <span>เปลี่ยนธีมสี</span>
+                    </button>
+
+                    <!-- Spotify / Music Button -->
+                    <button onclick="openModal('music-modal')" class="text-xs font-medium bg-white/80 hover:bg-white theme-text-dark py-2 px-3.5 rounded-xl border theme-border shadow-sm transition flex items-center gap-2">
+                        <i class="fa-brands fa-spotify text-emerald-500 text-sm"></i>
+                        <span id="music-btn-label">เล่นเพลง</span>
+                    </button>
+
+                    <!-- Custom Background Button -->
+                    <button onclick="openModal('bg-modal')" class="text-xs font-medium bg-white/80 hover:bg-white theme-text-dark py-2 px-3.5 rounded-xl border theme-border shadow-sm transition flex items-center gap-2">
+                        <i class="fa-solid fa-image theme-text-primary"></i>
+                        <span>เปลี่ยนพื้นหลัง</span>
+                    </button>
+
+                    <!-- Category Manager Button -->
+                    <button onclick="openModal('category-modal')" class="text-xs font-medium bg-white/80 hover:bg-white theme-text-dark py-2 px-3.5 rounded-xl border theme-border shadow-sm transition flex items-center gap-2">
+                        <i class="fa-solid fa-layer-group theme-text-primary"></i>
+                        <span>ตั้งค่าหมวดหมู่</span>
+                    </button>
+
+                </div>
+            </div>
+        </header>
+
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 glass-card p-4 rounded-2xl">
+            
+            <!-- Month & Year Selector -->
+            <div class="flex items-center gap-3 w-full sm:w-auto">
+                <div class="flex items-center gap-2 bg-white/80 border theme-border rounded-xl px-3 py-2 shadow-sm">
+                    <i class="fa-regular fa-calendar-days theme-text-primary"></i>
+                    <select id="filter-month" onchange="renderApp()" class="bg-transparent text-sm font-medium theme-text-dark focus:outline-none cursor-pointer">
+                        <option value="0">มกราคม</option>
+                        <option value="1">กุมภาพันธ์</option>
+                        <option value="2">มีนาคม</option>
+                        <option value="3">เมษายน</option>
+                        <option value="4">พฤษภาคม</option>
+                        <option value="5">มิถุนายน</option>
+                        <option value="6">กรกฎาคม</option>
+                        <option value="7">สิงหาคม</option>
+                        <option value="8">กันยายน</option>
+                        <option value="9">ตุลาคม</option>
+                        <option value="10">พฤศจิกายน</option>
+                        <option value="11">ธันวาคม</option>
+                    </select>
+                </div>
+
+                <div class="flex items-center gap-2 bg-white/80 border theme-border rounded-xl px-3 py-2 shadow-sm">
+                    <select id="filter-year" onchange="renderApp()" class="bg-transparent text-sm font-medium theme-text-dark focus:outline-none cursor-pointer">
+                        <!-- Populated by JS -->
+                    </select>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+                <button onclick="openModal('yearly-modal')" 
+                        class="text-xs sm:text-sm bg-white/80 hover:bg-white theme-text-dark font-medium py-2.5 px-4 rounded-xl border theme-border shadow-sm transition flex items-center gap-2">
+                    <i class="fa-solid fa-chart-line theme-text-primary"></i>
+                    <span>สรุปรายปี</span>
+                </button>
+
+                <button onclick="openTransactionModal()" 
+                        class="theme-btn-primary text-xs sm:text-sm font-semibold py-2.5 px-5 rounded-xl transition flex items-center gap-2 shadow-md">
+                    <i class="fa-solid fa-plus text-xs"></i>
+                    <span>บันทึกรายการ</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <!-- Total Income -->
+            <div class="glass-card rounded-2xl p-5 border-l-4 border-l-emerald-400 relative overflow-hidden">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">รายรับรวมประจำเดือน</p>
+                        <h3 id="monthly-income" class="text-2xl sm:text-3xl font-bold text-emerald-600 mt-2">฿0.00</h3>
+                    </div>
+                    <div class="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-lg shadow-inner">
+                        <i class="fa-solid fa-arrow-down-left"></i>
+                    </div>
+                </div>
+                <p class="text-xs text-slate-500 mt-3 flex items-center gap-1">
+                    <span id="income-count" class="font-medium text-slate-700">0</span> รายการ
+                </p>
+            </div>
+
+            <!-- Total Expense -->
+            <div class="glass-card rounded-2xl p-5 border-l-4 border-l-rose-400 relative overflow-hidden">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">รายจ่ายรวมประจำเดือน</p>
+                        <h3 id="monthly-expense" class="text-2xl sm:text-3xl font-bold text-rose-600 mt-2">฿0.00</h3>
+                    </div>
+                    <div class="w-11 h-11 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center text-lg shadow-inner">
+                        <i class="fa-solid fa-arrow-up-right"></i>
+                    </div>
+                </div>
+                <p class="text-xs text-slate-500 mt-3 flex items-center gap-1">
+                    <span id="expense-count" class="font-medium text-slate-700">0</span> รายการ
+                </p>
+            </div>
+
+            <!-- Net Profit / Balance -->
+            <div id="profit-card" class="glass-card rounded-2xl p-5 border-l-4 border-l-pink-500 relative overflow-hidden">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">กำไรสุทธิ / คงเหลือ</p>
+                        <h3 id="monthly-profit" class="text-2xl sm:text-3xl font-bold theme-text-primary mt-2">฿0.00</h3>
+                    </div>
+                    <div id="profit-icon" class="w-11 h-11 rounded-2xl theme-bg-soft theme-text-primary flex items-center justify-center text-lg shadow-inner">
+                        <i class="fa-solid fa-scale-balanced"></i>
+                    </div>
+                </div>
+                <div id="profit-badge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium mt-3 theme-bg-soft theme-text-dark">
+                    <i class="fa-solid fa-circle-check text-xs"></i> สถานะปกติ
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Monthly Bar Chart -->
+            <div class="glass-card rounded-2xl p-5 lg:col-span-2 flex flex-col justify-between">
+                <div class="flex items-center justify-between mb-4">
+                    <h4 class="text-base font-bold theme-text-dark flex items-center gap-2">
+                        <i class="fa-solid fa-chart-column theme-text-primary"></i>
+                        เปรียบเทียบรายรับ vs รายจ่ายประจำปี
+                    </h4>
+                    <span class="text-xs theme-text-primary theme-bg-soft px-2.5 py-1 rounded-full font-medium">12 เดือน</span>
+                </div>
+                <div class="relative h-64 sm:h-72 w-full">
+                    <canvas id="barChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Expense Category Doughnut Chart -->
+            <div class="glass-card rounded-2xl p-5 flex flex-col justify-between">
+                <div class="flex items-center justify-between mb-4">
+                    <h4 class="text-base font-bold theme-text-dark flex items-center gap-2">
+                        <i class="fa-solid fa-chart-pie theme-text-primary"></i>
+                        สัดส่วนรายจ่ายตามหมวดหมู่
+                    </h4>
+                </div>
+                <div class="relative h-64 sm:h-72 w-full flex items-center justify-center">
+                    <canvas id="pieChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-card rounded-3xl p-5 sm:p-6 space-y-4">
+            
+            <!-- Table Header Controls -->
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-pink-200/50 pb-4">
+                <h3 class="text-lg font-bold theme-text-dark flex items-center gap-2 w-full sm:w-auto">
+                    <i class="fa-solid fa-receipt theme-text-primary"></i>
+                    รายการบันทึกประจำเดือน
+                </h3>
+
+                <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+                    <!-- Search bar -->
+                    <div class="relative flex-1 sm:flex-initial">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                        <input type="text" id="search-input" oninput="renderTransactions()" placeholder="ค้นหาหมวดหมู่ หรือ หมายเหตุ..." 
+                               class="w-full sm:w-48 pl-8 pr-3 py-1.5 text-xs bg-white/80 border theme-border rounded-xl focus:outline-none text-slate-800 placeholder-slate-400">
+                    </div>
+
+                    <!-- Type Filter -->
+                    <select id="filter-type" onchange="renderTransactions()" 
+                            class="text-xs bg-white/80 border theme-border rounded-xl px-3 py-1.5 theme-text-dark font-medium focus:outline-none cursor-pointer">
+                        <option value="all">ทุกประเภท</option>
+                        <option value="income">เฉพาะรายรับ</option>
+                        <option value="expense">เฉพาะรายจ่าย</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Transaction Table -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="text-xs font-semibold theme-text-dark border-b border-pink-200/70 theme-bg-soft">
+                            <th class="py-3 px-4 rounded-l-xl">วันที่</th>
+                            <th class="py-3 px-4">ประเภท</th>
+                            <th class="py-3 px-4">หมวดหมู่</th>
+                            <th class="py-3 px-4">หมายเหตุ</th>
+                            <th class="py-3 px-4 text-right">จำนวนเงิน (บาท)</th>
+                            <th class="py-3 px-4 text-center rounded-r-xl">จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactions-body" class="divide-y divide-pink-100/60 text-sm">
+                        <!-- Rendered dynamically -->
+                    </tbody>
+                </table>
+                <div id="empty-state" class="hidden py-12 text-center text-slate-400 space-y-2">
+                    <i class="fa-solid fa-folder-open text-4xl theme-text-primary opacity-50"></i>
+                    <p class="text-sm">ไม่พบรายการบันทึกประจำเดือนนี้</p>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- MODAL 1: ADD / EDIT TRANSACTION -->
+    <div id="transaction-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm hidden">
+        <div class="glass-modal rounded-3xl max-w-md w-full p-6 shadow-2xl relative">
+            <button onclick="closeModal('transaction-modal')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <h3 id="modal-title" class="text-lg font-bold theme-text-dark mb-5 flex items-center gap-2">
+                <i class="fa-solid fa-pen-nib theme-text-primary"></i>
+                เพิ่มรายการใหม่
+            </h3>
+
+            <form id="transaction-form" onsubmit="handleSaveTransaction(event)" class="space-y-4">
+                <input type="hidden" id="trans-id">
+
+                <!-- Type Selector -->
+                <div>
+                    <label class="block text-xs font-semibold theme-text-dark mb-2">ประเภทรายการ</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button type="button" id="btn-type-income" onclick="setTransactionType('income')" 
+                                class="py-2.5 rounded-xl border text-xs font-semibold transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-circle-arrow-down text-emerald-500"></i> รายรับ
+                        </button>
+                        <button type="button" id="btn-type-expense" onclick="setTransactionType('expense')" 
+                                class="py-2.5 rounded-xl border text-xs font-semibold transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-circle-arrow-up text-rose-500"></i> รายจ่าย
+                        </button>
+                    </div>
+                    <input type="hidden" id="trans-type" value="income">
+                </div>
+
+                <!-- Amount -->
+                <div>
+                    <label class="block text-xs font-semibold theme-text-dark mb-1">จำนวนเงิน (บาท)</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 theme-text-primary font-bold text-sm">฿</span>
+                        <input type="number" id="trans-amount" step="0.01" min="0.01" required placeholder="0.00" 
+                               class="w-full pl-8 pr-4 py-2.5 bg-white/80 border theme-border rounded-xl focus:outline-none text-slate-800 text-base font-semibold">
+                    </div>
+                </div>
+
+                <!-- Category -->
+                <div>
+                    <label class="block text-xs font-semibold theme-text-dark mb-1">หมวดหมู่</label>
+                    <select id="trans-category" required class="w-full px-3 py-2.5 bg-white/80 border theme-border rounded-xl focus:outline-none text-slate-800 text-xs">
+                        <!-- Dynamically filled -->
+                    </select>
+                </div>
+
+                <!-- Date -->
+                <div>
+                    <label class="block text-xs font-semibold theme-text-dark mb-1">วันที่บันทึก</label>
+                    <input type="date" id="trans-date" required 
+                           class="w-full px-3 py-2.5 bg-white/80 border theme-border rounded-xl focus:outline-none text-slate-800 text-xs">
+                </div>
+
+                <!-- Note -->
+                <div>
+                    <label class="block text-xs font-semibold theme-text-dark mb-1">หมายเหตุ / รายละเอียด</label>
+                    <input type="text" id="trans-note" placeholder="เช่น เงินเดือนประจำเดือน, กาแฟสด" 
+                           class="w-full px-3 py-2.5 bg-white/80 border theme-border rounded-xl focus:outline-none text-slate-800 text-xs">
+                </div>
+
+                <div class="flex items-center gap-3 pt-3">
+                    <button type="button" onclick="closeModal('transaction-modal')" 
+                            class="w-1/3 py-2.5 rounded-xl border theme-border text-slate-600 font-medium text-xs hover:bg-white/50 transition">
+                        ยกเลิก
+                    </button>
+                    <button type="submit" 
+                            class="w-2/3 py-2.5 rounded-xl theme-btn-primary font-semibold text-xs shadow transition">
+                        บันทึกรายการ
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 2: THEME & COLOR PICKER -->
+    <div id="theme-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm hidden">
+        <div class="glass-modal rounded-3xl max-w-md w-full p-6 shadow-2xl relative space-y-5">
+            <button onclick="closeModal('theme-modal')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <h3 class="text-lg font-bold theme-text-dark flex items-center gap-2">
+                <i class="fa-solid fa-palette theme-text-primary"></i>
+                เลือกธีมสีและโทนที่คุณชอบ
+            </h3>
+
+            <!-- Presets -->
+            <div class="space-y-2">
+                <label class="block text-xs font-semibold text-slate-600">ธีมสำเร็จรูป (Presets)</label>
+                <div class="grid grid-cols-2 gap-2.5">
+                    <button onclick="applyThemePreset('wendy_pink')" class="p-2.5 rounded-xl border border-pink-200 bg-pink-50 hover:bg-pink-100 text-xs font-semibold text-pink-700 flex items-center gap-2 transition">
+                        <span class="w-4 h-4 rounded-full bg-pink-500 inline-block"></span> Wendy Pink
+                    </button>
+                    <button onclick="applyThemePreset('sakura_rose')" class="p-2.5 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-xs font-semibold text-rose-700 flex items-center gap-2 transition">
+                        <span class="w-4 h-4 rounded-full bg-rose-500 inline-block"></span> Sakura Rose
+                    </button>
+                    <button onclick="applyThemePreset('lavender')" class="p-2.5 rounded-xl border border-purple-200 bg-purple-50 hover:bg-purple-100 text-xs font-semibold text-purple-700 flex items-center gap-2 transition">
+                        <span class="w-4 h-4 rounded-full bg-purple-500 inline-block"></span> Lavender Dream
+                    </button>
+                    <button onclick="applyThemePreset('peach')" class="p-2.5 rounded-xl border border-orange-200 bg-orange-50 hover:bg-orange-100 text-xs font-semibold text-orange-700 flex items-center gap-2 transition">
+                        <span class="w-4 h-4 rounded-full bg-orange-500 inline-block"></span> Peach Chiffon
+                    </button>
+                    <button onclick="applyThemePreset('matcha')" class="p-2.5 rounded-xl border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-xs font-semibold text-emerald-700 flex items-center gap-2 transition">
+                        <span class="w-4 h-4 rounded-full bg-emerald-500 inline-block"></span> Matcha Latte
+                    </button>
+                    <button onclick="applyThemePreset('sky')" class="p-2.5 rounded-xl border border-sky-200 bg-sky-50 hover:bg-sky-100 text-xs font-semibold text-sky-700 flex items-center gap-2 transition">
+                        <span class="w-4 h-4 rounded-full bg-sky-500 inline-block"></span> Sky Blue
+                    </button>
+                </div>
+            </div>
+
+            <!-- Custom Hex Color Picker -->
+            <div class="space-y-2 border-t border-pink-200/50 pt-4">
+                <label class="block text-xs font-semibold text-slate-600">กำหนดสีหลักเอง (Custom Color)</label>
+                <div class="flex items-center gap-3">
+                    <input type="color" id="custom-color-picker" value="#ec4899" class="w-10 h-10 rounded-xl cursor-pointer border-0 bg-transparent" onchange="applyCustomColor(this.value)">
+                    <span id="custom-color-hex" class="text-xs font-mono font-semibold text-slate-700">#ec4899</span>
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-2">
+                <button onclick="closeModal('theme-modal')" class="theme-btn-primary px-5 py-2 rounded-xl text-xs font-semibold shadow">
+                    เสร็จสิ้น
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 3: SPOTIFY & MUSIC PLAYER -->
+    <div id="music-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm hidden">
+        <div class="glass-modal rounded-3xl max-w-lg w-full p-6 shadow-2xl relative space-y-4">
+            <button onclick="closeModal('music-modal')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <h3 class="text-lg font-bold theme-text-dark flex items-center gap-2">
+                <i class="fa-brands fa-spotify text-emerald-500 text-xl"></i>
+                เครื่องเล่นเพลง & Spotify Integration
+            </h3>
+
+            <!-- Spotify URL input -->
+            <div class="space-y-2">
+                <label class="block text-xs font-semibold text-slate-600">วางลิงก์ Spotify (Track / Playlist / Album)</label>
+                <div class="flex gap-2">
+                    <input type="text" id="spotify-url-input" placeholder="https://open.spotify.com/track/..." 
+                           class="flex-1 px-3 py-2 text-xs bg-white/80 border theme-border rounded-xl focus:outline-none">
+                    <button onclick="updateSpotifyEmbed()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold px-4 py-2 rounded-xl text-xs transition">
+                        โหลดเพลง
+                    </button>
+                </div>
+            </div>
+
+            <!-- Embedded Player Container -->
+            <div id="spotify-iframe-container" class="rounded-2xl overflow-hidden shadow-inner bg-slate-900/10 min-h-[80px] flex items-center justify-center">
+                <p class="text-xs text-slate-400 p-4 text-center">ยังไม่ได้วางลิงก์ Spotify</p>
+            </div>
+
+            <!-- Alternative: Local Audio File Upload -->
+            <div class="border-t border-pink-200/50 pt-3 space-y-2">
+                <label class="block text-xs font-semibold text-slate-600">หรือ อัปโหลดไฟล์เพลงจากเครื่อง (MP3/Audio)</label>
+                <input type="file" id="local-audio-input" accept="audio/*" class="text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-pink-100 file:text-pink-700 hover:file:bg-pink-200 cursor-pointer" onchange="handleLocalAudioUpload(event)">
+                <audio id="local-audio-player" controls class="w-full h-8 mt-2 hidden"></audio>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 4: CATEGORY MANAGER -->
+    <div id="category-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm hidden">
+        <div class="glass-modal rounded-3xl max-w-md w-full p-6 shadow-2xl relative space-y-5">
+            <button onclick="closeModal('category-modal')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <h3 class="text-lg font-bold theme-text-dark flex items-center gap-2">
+                <i class="fa-solid fa-layer-group theme-text-primary"></i>
+                จัดการหมวดหมู่รายรับ - รายจ่าย
+            </h3>
+
+            <!-- Add new category form -->
+            <form onsubmit="handleCreateCategory(event)" class="space-y-3 bg-white/60 p-3.5 rounded-2xl border theme-border">
+                <div class="grid grid-cols-2 gap-2">
+                    <select id="new-cat-type" class="px-2.5 py-1.5 text-xs bg-white border theme-border rounded-xl font-medium">
+                        <option value="expense">รายจ่าย</option>
+                        <option value="income">รายรับ</option>
+                    </select>
+                    <input type="text" id="new-cat-name" required placeholder="ชื่อหมวดหมู่ใหม่..." class="px-2.5 py-1.5 text-xs bg-white border theme-border rounded-xl">
+                </div>
+                <button type="submit" class="w-full theme-btn-primary py-2 rounded-xl text-xs font-semibold shadow">
+                    + เพิ่มหมวดหมู่
+                </button>
+            </form>
+
+            <!-- List of existing categories -->
+            <div class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider">หมวดหมู่ปัจจุบัน</h4>
+                <div id="categories-list" class="space-y-1.5">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 5: BACKGROUND & OVERLAY MODAL -->
+    <div id="bg-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm hidden">
+        <div class="glass-modal rounded-3xl max-w-md w-full p-6 shadow-2xl relative space-y-4">
+            <button onclick="closeModal('bg-modal')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <h3 class="text-lg font-bold theme-text-dark flex items-center gap-2">
+                <i class="fa-solid fa-image theme-text-primary"></i>
+                ปรับแต่งรูปภาพพื้นหลัง
+            </h3>
+
+            <div class="space-y-3">
+                <label class="block text-xs font-semibold text-slate-600">อัปโหลดภาพพื้นหลังใหม่</label>
+                <input type="file" id="bg-file-input" accept="image/*" class="text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-pink-100 file:text-pink-700 hover:file:bg-pink-200 cursor-pointer" onchange="handleBgUpload(event)">
+            </div>
+
+            <div class="flex justify-between items-center pt-3 border-t border-pink-200/50">
+                <button onclick="removeCustomBackground()" class="text-xs text-rose-600 hover:text-rose-700 font-semibold flex items-center gap-1.5">
+                    <i class="fa-solid fa-trash-can"></i> รีเซ็ตเป็นพื้นหลังเริ่มต้น
+                </button>
+                <button onclick="closeModal('bg-modal')" class="theme-btn-primary px-4 py-2 rounded-xl text-xs font-semibold">
+                    บันทึก
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 6: YEARLY BREAKDOWN REPORT -->
+    <div id="yearly-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm hidden">
+        <div class="glass-modal rounded-3xl max-w-4xl w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <button onclick="closeModal('yearly-modal')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <div class="mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-pink-200/50 pb-3">
+                <h3 class="text-lg font-bold theme-text-dark flex items-center gap-2">
+                    <i class="fa-solid fa-calendar-check theme-text-primary"></i>
+                    สรุปการเงินประจำปี (<span id="yearly-modal-year">2026</span>)
+                </h3>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="text-xs font-semibold theme-text-dark border-b border-pink-200 theme-bg-soft">
+                            <th class="py-3 px-4">เดือน</th>
+                            <th class="py-3 px-4 text-right">รายรับรวม (บาท)</th>
+                            <th class="py-3 px-4 text-right">รายจ่ายรวม (บาท)</th>
+                            <th class="py-3 px-4 text-right">กำไรสุทธิ (บาท)</th>
+                            <th class="py-3 px-4 text-center">สถานะ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="yearly-table-body" class="divide-y divide-pink-100 text-sm">
+                        <!-- Populated dynamically -->
+                    </tbody>
+                    <tfoot id="yearly-table-foot" class="border-t-2 border-pink-300 theme-bg-soft font-bold theme-text-dark">
+                        <!-- Footer totals -->
+                    </tfoot>
+                </table>
+            </div>
+
+            <div class="mt-6 flex justify-end">
+                <button onclick="closeModal('yearly-modal')" class="theme-btn-primary text-xs font-semibold py-2 px-6 rounded-xl shadow">
+                    ปิดหน้าต่าง
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Constant Month Names
+        const MONTH_NAMES = [
+            'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+            'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+        ];
+
+        // Default Theme Colors
+        const THEME_PRESETS = {
+            wendy_pink: { primary: '#ec4899', accent: '#f43f5e', soft: '#fce7f3', dark: '#831843' },
+            sakura_rose: { primary: '#f43f5e', accent: '#e11d48', soft: '#ffe4e6', dark: '#881337' },
+            lavender: { primary: '#8b5cf6', accent: '#a855f7', soft: '#f3e8ff', dark: '#581c87' },
+            peach: { primary: '#f97316', accent: '#fb923c', soft: '#ffedd5', dark: '#7c2d12' },
+            matcha: { primary: '#10b981', accent: '#059669', soft: '#d1fae5', dark: '#064e3b' },
+            sky: { primary: '#0ea5e9', accent: '#0284c7', soft: '#e0f2fe', dark: '#0c4a6e' }
+        };
+
+        // Application State
+        let transactions = [];
+        let categories = {
+            income: ['เงินเดือน / ค่าจ้าง', 'โบนัส / พิเศษ', 'กำไรลงทุน / ปันผล', 'ของขวัญ / ได้รับมา', 'รายรับอื่นๆ'],
+            expense: ['อาหาร / เครื่องดื่ม', 'ช้อปปิ้ง / เสื้อผ้า', 'เดินทาง / น้ำมัน', 'ค่าน้ำ / ค่าไฟ / เน็ต', 'สุขภาพ / เครื่องสำอาง', 'ความบันเทิง / หนัง', 'รายจ่ายอื่นๆ']
+        };
+        let userSettings = {
+            name: "Wendy Jelly",
+            profilePic: "",
+            bgImage: "",
+            spotifyUrl: "",
+            theme: "wendy_pink",
+            customColor: null
+        };
+
+        // Chart References
+        let barChartInstance = null;
+        let pieChartInstance = null;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initYearDropdown();
+            loadLocalStorageData();
+            setupCurrentDateFilters();
+            renderApp();
+        });
+
+        // Year Selector Initialization
+        function initYearDropdown() {
+            const yearSelect = document.getElementById('filter-year');
+            const currentYear = new Date().getFullYear();
+            yearSelect.innerHTML = '';
+            for (let y = currentYear - 3; y <= currentYear + 2; y++) {
+                const opt = document.createElement('option');
+                opt.value = y;
+                opt.textContent = `ปี ${y + 543} (${y})`;
+                if (y === currentYear) opt.selected = true;
+                yearSelect.appendChild(opt);
+            }
+        }
+
+        function setupCurrentDateFilters() {
+            const today = new Date();
+            document.getElementById('filter-month').value = today.getMonth();
+            document.getElementById('filter-year').value = today.getFullYear();
+            document.getElementById('trans-date').valueAsDate = today;
+        }
+
+        // Local Storage Sync
+        function loadLocalStorageData() {
+            const savedTrans = localStorage.getItem('wendyjelly_transactions');
+            if (savedTrans) {
+                transactions = JSON.parse(savedTrans);
+            } else {
+                // Initial Sample Demo Data
+                const curYear = new Date().getFullYear();
+                const curMonth = (new Date().getMonth() + 1).toString().padStart(2, '0');
+                transactions = [
+                    { id: 't1', type: 'income', amount: 38000, category: 'เงินเดือน / ค่าจ้าง', date: `${curYear}-${curMonth}-01`, note: 'เงินเดือนประจำเดือน' },
+                    { id: 't2', type: 'expense', amount: 1250, category: 'อาหาร / เครื่องดื่ม', date: `${curYear}-${curMonth}-03`, note: 'ทานอาหารกับครอบครัว' },
+                    { id: 't3', type: 'expense', amount: 2400, category: 'ช้อปปิ้ง / เสื้อผ้า', date: `${curYear}-${curMonth}-06`, note: 'ชุดกระโปรงหวานๆ' },
+                    { id: 't4', type: 'expense', amount: 1500, category: 'ค่าน้ำ / ค่าไฟ / เน็ต', date: `${curYear}-${curMonth}-09`, note: 'ค่าอินเทอร์เน็ต' }
+                ];
+                saveTransactionsToStorage();
+            }
+
+            const savedCats = localStorage.getItem('wendyjelly_categories');
+            if (savedCats) {
+                categories = JSON.parse(savedCats);
+            }
+
+            const savedSettings = localStorage.getItem('wendyjelly_settings');
+            if (savedSettings) {
+                userSettings = JSON.parse(savedSettings);
+                document.getElementById('user-name-input').value = userSettings.name || "Wendy Jelly";
+                if (userSettings.profilePic) {
+                    document.getElementById('profile-img').src = userSettings.profilePic;
+                }
+                if (userSettings.bgImage) {
+                    applyCustomBackground(userSettings.bgImage);
+                }
+                if (userSettings.spotifyUrl) {
+                    document.getElementById('spotify-url-input').value = userSettings.spotifyUrl;
+                    updateSpotifyEmbed();
+                }
+                if (userSettings.customColor) {
+                    applyCustomColor(userSettings.customColor, false);
+                } else if (userSettings.theme) {
+                    applyThemePreset(userSettings.theme, false);
+                }
+            }
+        }
+
+        function saveTransactionsToStorage() {
+            localStorage.setItem('wendyjelly_transactions', JSON.stringify(transactions));
+        }
+
+        function saveCategoriesToStorage() {
+            localStorage.setItem('wendyjelly_categories', JSON.stringify(categories));
+        }
+
+        function saveUserSettings() {
+            userSettings.name = document.getElementById('user-name-input').value;
+            localStorage.setItem('wendyjelly_settings', JSON.stringify(userSettings));
+        }
+
+
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.remove('hidden');
+            if (modalId === 'category-modal') renderCategoriesList();
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const bgClass = type === 'success' ? 'bg-emerald-600' : 'bg-rose-600';
+            toast.className = `${bgClass} text-white text-xs font-semibold px-4 py-3 rounded-2xl shadow-lg flex items-center gap-2 transform transition-all duration-300 translate-y-2 opacity-0`;
+            toast.innerHTML = `<i class="fa-solid fa-circle-info"></i> ${message}`;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+
+        function applyThemePreset(presetKey, save = true) {
+            const theme = THEME_PRESETS[presetKey] || THEME_PRESETS.wendy_pink;
+            document.documentElement.style.setProperty('--color-primary', theme.primary);
+            document.documentElement.style.setProperty('--color-accent', theme.accent);
+            document.documentElement.style.setProperty('--color-soft', theme.soft);
+            document.documentElement.style.setProperty('--color-border', theme.primary + '50');
+            document.documentElement.style.setProperty('--color-text-dark', theme.dark);
+            
+            userSettings.theme = presetKey;
+            userSettings.customColor = null;
+            if (save) saveUserSettings();
+            showToast(`เปลี่ยนธีมเป็น ${presetKey} เรียบร้อย`);
+        }
+
+        function applyCustomColor(hexColor, save = true) {
+            document.documentElement.style.setProperty('--color-primary', hexColor);
+            document.documentElement.style.setProperty('--color-accent', hexColor);
+            document.documentElement.style.setProperty('--color-soft', hexColor + '25');
+            document.documentElement.style.setProperty('--color-border', hexColor + '50');
+            document.getElementById('custom-color-hex').textContent = hexColor;
+
+            userSettings.customColor = hexColor;
+            if (save) saveUserSettings();
+            showToast(`กำหนดสีเป็น ${hexColor} เรียบร้อย`);
+        }
+
+
+        function handleProfileUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function (evt) {
+                const base64 = evt.target.result;
+                document.getElementById('profile-img').src = base64;
+                userSettings.profilePic = base64;
+                saveUserSettings();
+                showToast('อัปโหลดรูปโปรไฟล์เรียบร้อย');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function handleBgUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function (evt) {
+                const base64 = evt.target.result;
+                applyCustomBackground(base64);
+                userSettings.bgImage = base64;
+                saveUserSettings();
+                showToast('เปลี่ยนภาพพื้นหลังเรียบร้อย');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function applyCustomBackground(bgUrl) {
+            const overlay = document.getElementById('bg-overlay');
+            overlay.style.backgroundImage = `linear-gradient(rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.65)), url('${bgUrl}')`;
+            overlay.classList.remove('bg-pattern-default');
+        }
+
+        function removeCustomBackground() {
+            const overlay = document.getElementById('bg-overlay');
+            overlay.style.backgroundImage = 'none';
+            overlay.classList.add('bg-pattern-default');
+            userSettings.bgImage = "";
+            saveUserSettings();
+            showToast('รีเซ็ตพื้นหลังเป็นค่าเริ่มต้นแล้ว');
+        }
+
+
+        function updateSpotifyEmbed() {
+            const input = document.getElementById('spotify-url-input').value.trim();
+            const container = document.getElementById('spotify-iframe-container');
+
+            if (!input) {
+                container.innerHTML = '<p class="text-xs text-slate-400 p-4 text-center">ยังไม่ได้วางลิงก์ Spotify</p>';
+                return;
+            }
+
+            // Parse Spotify URL to Embed URL format
+            let embedUrl = "";
+            if (input.includes("open.spotify.com/")) {
+                const parts = input.split("open.spotify.com/")[1].split("?")[0];
+                embedUrl = `https://open.spotify.com/embed/${parts}?utm_source=generator`;
+            } else {
+                showToast('รูปแบบ URL Spotify ไม่ถูกต้อง', 'error');
+                return;
+            }
+
+            container.innerHTML = `
+                <iframe src="${embedUrl}" width="100%" height="152" frameborder="0" 
+                        allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+            `;
+
+            userSettings.spotifyUrl = input;
+            saveUserSettings();
+            document.getElementById('music-btn-label').textContent = 'Spotify Playing';
+            showToast('โหลด Spotify Embed เรียบร้อย');
+        }
+
+        function handleLocalAudioUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const player = document.getElementById('local-audio-player');
+            player.src = URL.createObjectURL(file);
+            player.classList.remove('hidden');
+            player.play();
+            document.getElementById('music-btn-label').textContent = file.name;
+            showToast('กำลังเล่นไฟล์เพลงท้องถิ่น');
+        }
+
+
+        function renderCategoriesList() {
+            const container = document.getElementById('categories-list');
+            container.innerHTML = '';
+
+            ['income', 'expense'].forEach(type => {
+                const label = type === 'income' ? 'รายรับ' : 'รายจ่าย';
+                const badgeColor = type === 'income' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700';
+
+                categories[type].forEach((cat, idx) => {
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center justify-between p-2 rounded-xl bg-white/80 border border-pink-100 text-xs';
+                    div.innerHTML = `
+                        <div class="flex items-center gap-2">
+                            <span class="px-2 py-0.5 rounded-full font-semibold ${badgeColor}">${label}</span>
+                            <span class="font-medium text-slate-700">${cat}</span>
+                        </div>
+                        <button onclick="deleteCategory('${type}', ${idx})" class="text-rose-400 hover:text-rose-600 p-1">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    `;
+                    container.appendChild(div);
+                });
+            });
+        }
+
+        function handleCreateCategory(e) {
+            e.preventDefault();
+            const type = document.getElementById('new-cat-type').value;
+            const name = document.getElementById('new-cat-name').value.trim();
+
+            if (!name) return;
+
+            if (!categories[type].includes(name)) {
+                categories[type].push(name);
+                saveCategoriesToStorage();
+                renderCategoriesList();
+                document.getElementById('new-cat-name').value = '';
+                showToast(`เพิ่มหมวดหมู่ ${name} แล้ว`);
+            } else {
+                showToast('หมวดหมู่นี้มีอยู่แล้ว', 'error');
+            }
+        }
+
+        function deleteCategory(type, index) {
+            const catName = categories[type][index];
+            categories[type].splice(index, 1);
+            saveCategoriesToStorage();
+            renderCategoriesList();
+            showToast(`ลบหมวดหมู่ ${catName} เรียบร้อย`);
+        }
+
+
+        function renderApp() {
+            const selectedMonth = parseInt(document.getElementById('filter-month').value);
+            const selectedYear = parseInt(document.getElementById('filter-year').value);
+
+            const filteredTrans = transactions.filter(t => {
+                const d = new Date(t.date);
+                return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
+            });
+
+            let totalIncome = 0;
+            let totalExpense = 0;
+            let incCount = 0;
+            let expCount = 0;
+
+            filteredTrans.forEach(t => {
+                if (t.type === 'income') {
+                    totalIncome += parseFloat(t.amount);
+                    incCount++;
+                } else {
+                    totalExpense += parseFloat(t.amount);
+                    expCount++;
+                }
+            });
+
+            const netProfit = totalIncome - totalExpense;
+
+            // Update KPI Cards
+            document.getElementById('monthly-income').textContent = `฿${totalIncome.toLocaleString('th-TH', { minimumFractionDigits: 2 })}`;
+            document.getElementById('monthly-expense').textContent = `฿${totalExpense.toLocaleString('th-TH', { minimumFractionDigits: 2 })}`;
+            document.getElementById('monthly-profit').textContent = `฿${netProfit.toLocaleString('th-TH', { minimumFractionDigits: 2 })}`;
+
+            document.getElementById('income-count').textContent = incCount;
+            document.getElementById('expense-count').textContent = expCount;
+
+            // Profit status badge updates
+            const profitBadge = document.getElementById('profit-badge');
+            if (netProfit >= 0) {
+                profitBadge.className = 'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium mt-3 bg-emerald-100 text-emerald-700';
+                profitBadge.innerHTML = '<i class="fa-solid fa-circle-check"></i> สถานะ: กำไรสุทธิสดใส';
+            } else {
+                profitBadge.className = 'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium mt-3 bg-rose-100 text-rose-700';
+                profitBadge.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> สถานะ: ขาดทุน/ใช้เกินงบ';
+            }
+
+            renderTransactions();
+            renderCharts(selectedYear);
+        }
+
+        function renderTransactions() {
+            const selectedMonth = parseInt(document.getElementById('filter-month').value);
+            const selectedYear = parseInt(document.getElementById('filter-year').value);
+            const typeFilter = document.getElementById('filter-type').value;
+            const searchKeyword = document.getElementById('search-input').value.trim().toLowerCase();
+
+            const tbody = document.getElementById('transactions-body');
+            const emptyState = document.getElementById('empty-state');
+            tbody.innerHTML = '';
+
+            let list = transactions.filter(t => {
+                const d = new Date(t.date);
+                return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
+            });
+
+            if (typeFilter !== 'all') {
+                list = list.filter(t => t.type === typeFilter);
+            }
+
+            if (searchKeyword) {
+                list = list.filter(t => 
+                    t.category.toLowerCase().includes(searchKeyword) || 
+                    (t.note && t.note.toLowerCase().includes(searchKeyword))
+                );
+            }
+
+            list.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            if (list.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            list.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-pink-50/50 transition';
+
+                const isInc = item.type === 'income';
+                const typeBadge = isInc 
+                    ? `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700"><i class="fa-solid fa-arrow-down-left text-[10px]"></i> รายรับ</span>`
+                    : `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-700"><i class="fa-solid fa-arrow-up-right text-[10px]"></i> รายจ่าย</span>`;
+
+                const amountText = isInc 
+                    ? `<span class="font-bold text-emerald-600">+฿${parseFloat(item.amount).toLocaleString('th-TH', {minimumFractionDigits: 2})}</span>`
+                    : `<span class="font-bold text-rose-600">-฿${parseFloat(item.amount).toLocaleString('th-TH', {minimumFractionDigits: 2})}</span>`;
+
+                const dateObj = new Date(item.date);
+                const formattedDate = `${dateObj.getDate()} ${MONTH_NAMES[dateObj.getMonth()].substring(0, 3)} ${dateObj.getFullYear() + 543}`;
+
+                tr.innerHTML = `
+                    <td class="py-3 px-4 font-medium text-slate-600 text-xs sm:text-sm">${formattedDate}</td>
+                    <td class="py-3 px-4">${typeBadge}</td>
+                    <td class="py-3 px-4 font-semibold text-slate-800">${item.category}</td>
+                    <td class="py-3 px-4 text-xs text-slate-500 max-w-xs truncate">${item.note || '-'}</td>
+                    <td class="py-3 px-4 text-right text-base">${amountText}</td>
+                    <td class="py-3 px-4 text-center">
+                        <div class="flex items-center justify-center gap-2">
+                            <button onclick="editTransaction('${item.id}')" class="text-pink-400 hover:text-pink-600 p-1 rounded transition" title="แก้ไข">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <button onclick="deleteTransaction('${item.id}')" class="text-rose-400 hover:text-rose-600 p-1 rounded transition" title="ลบ">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+
+        function renderCharts(year) {
+            const monthlyInc = new Array(12).fill(0);
+            const monthlyExp = new Array(12).fill(0);
+            const categoryMap = {};
+
+            transactions.forEach(t => {
+                const d = new Date(t.date);
+                if (d.getFullYear() === year) {
+                    const m = d.getMonth();
+                    if (t.type === 'income') {
+                        monthlyInc[m] += parseFloat(t.amount);
+                    } else {
+                        monthlyExp[m] += parseFloat(t.amount);
+                        categoryMap[t.category] = (categoryMap[t.category] || 0) + parseFloat(t.amount);
+                    }
+                }
+            });
+
+            if (barChartInstance) barChartInstance.destroy();
+            const barCtx = document.getElementById('barChart').getContext('2d');
+            barChartInstance = new Chart(barCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'],
+                    datasets: [
+                        { label: 'รายรับ', data: monthlyInc, backgroundColor: '#10b981', borderRadius: 6 },
+                        { label: 'รายจ่าย', data: monthlyExp, backgroundColor: '#f43f5e', borderRadius: 6 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'top', labels: { font: { family: 'Kanit' } } } },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { ticks: { callback: v => '฿' + v.toLocaleString(), font: { family: 'Kanit' } } }
+                    }
+                }
+            });
+
+            if (pieChartInstance) pieChartInstance.destroy();
+            const pieCtx = document.getElementById('pieChart').getContext('2d');
+            const catLabels = Object.keys(categoryMap);
+            const catValues = Object.values(categoryMap);
+
+            pieChartInstance = new Chart(pieCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: catLabels.length > 0 ? catLabels : ['ไม่มีรายการ'],
+                    datasets: [{
+                        data: catValues.length > 0 ? catValues : [1],
+                        backgroundColor: ['#ec4899', '#f43f5e', '#a855f7', '#06b6d4', '#f97316', '#eab308', '#64748b'],
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { font: { family: 'Kanit', size: 11 } } } }
+                }
+            });
+        }
+
+
+        function openTransactionModal(editId = null) {
+            const form = document.getElementById('transaction-form');
+            form.reset();
+
+            if (editId) {
+                const item = transactions.find(t => t.id === editId);
+                if (item) {
+                    document.getElementById('trans-id').value = item.id;
+                    document.getElementById('trans-amount').value = item.amount;
+                    document.getElementById('trans-date').value = item.date;
+                    document.getElementById('trans-note').value = item.note || '';
+                    setTransactionType(item.type, item.category);
+                }
+            } else {
+                document.getElementById('trans-id').value = '';
+                document.getElementById('trans-date').valueAsDate = new Date();
+                setTransactionType('expense');
+            }
+
+            openModal('transaction-modal');
+        }
+
+        function setTransactionType(type, selectedCategory = null) {
+            document.getElementById('trans-type').value = type;
+            const btnInc = document.getElementById('btn-type-income');
+            const btnExp = document.getElementById('btn-type-expense');
+            const catSelect = document.getElementById('trans-category');
+
+            if (type === 'income') {
+                btnInc.className = 'py-2.5 rounded-xl border border-emerald-400 bg-emerald-50 text-emerald-700 text-xs font-semibold transition flex items-center justify-center gap-2 shadow-sm';
+                btnExp.className = 'py-2.5 rounded-xl border border-pink-200 bg-white/50 text-slate-500 text-xs font-semibold transition flex items-center justify-center gap-2';
+            } else {
+                btnExp.className = 'py-2.5 rounded-xl border border-rose-400 bg-rose-50 text-rose-700 text-xs font-semibold transition flex items-center justify-center gap-2 shadow-sm';
+                btnInc.className = 'py-2.5 rounded-xl border border-pink-200 bg-white/50 text-slate-500 text-xs font-semibold transition flex items-center justify-center gap-2';
+            }
+
+            catSelect.innerHTML = '';
+            categories[type].forEach(catName => {
+                const opt = document.createElement('option');
+                opt.value = catName;
+                opt.textContent = catName;
+                if (selectedCategory && selectedCategory === catName) opt.selected = true;
+                catSelect.appendChild(opt);
+            });
+        }
+
+        function handleSaveTransaction(e) {
+            e.preventDefault();
+
+            const id = document.getElementById('trans-id').value;
+            const type = document.getElementById('trans-type').value;
+            const amount = parseFloat(document.getElementById('trans-amount').value);
+            const category = document.getElementById('trans-category').value;
+            const date = document.getElementById('trans-date').value;
+            const note = document.getElementById('trans-note').value;
+
+            if (id) {
+                const index = transactions.findIndex(t => t.id === id);
+                if (index !== -1) {
+                    transactions[index] = { id, type, amount, category, date, note };
+                }
+                showToast('แก้ไขรายการเรียบร้อย');
+            } else {
+                const newTrans = { id: 't_' + Date.now(), type, amount, category, date, note };
+                transactions.push(newTrans);
+                showToast('บันทึกรายการใหม่เรียบร้อย');
+            }
+
+            saveTransactionsToStorage();
+            closeModal('transaction-modal');
+            renderApp();
+        }
+
+        function editTransaction(id) {
+            openTransactionModal(id);
+        }
+
+        function deleteTransaction(id) {
+            // Modal replace alert
+            transactions = transactions.filter(t => t.id !== id);
+            saveTransactionsToStorage();
+            renderApp();
+            showToast('ลบรายการเรียบร้อย');
+        }
+    </script>
+</body>
+</html>
